@@ -3,6 +3,7 @@ module github.com/ppodds/bot-cmd-manager
 go 1.18
 
 require (
+	github.com/epiclabs-io/winman v0.0.0-20210113192526-493c730b8c71 // indirect
 	github.com/gdamore/encoding v1.0.0 // indirect
 	github.com/gdamore/tcell/v2 v2.4.1-0.20210905002822-f057f0a857a1 // indirect
 	github.com/lucasb-eyer/go-colorful v1.2.0 // indirect
