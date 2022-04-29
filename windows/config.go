@@ -19,7 +19,9 @@ func NewConfigWindow(app *app.App) *winman.WindowBase {
 	}).AddButton("Save", func() {
 		app.Config.Save()
 		app.Manager.RemoveWindow(w)
-		app.Manager.AddWindow(NewEditWindow(app, ""))
+		if app.Manager.WindowCount() == 0 {
+			app.Manager.AddWindow(NewEditWindow(app, ""))
+		}
 	})
 	w.SetRoot(form).AddButton(&winman.Button{
 		Symbol: 'X',
