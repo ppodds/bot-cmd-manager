@@ -17,6 +17,10 @@ func NewConfigWindow(app *app.App) *winman.WindowBase {
 	}).AddInputField("Application ID", app.Config.ApplicationID, 0, nil, func(text string) {
 		app.Config.ApplicationID = text
 	}).AddButton("Save", func() {
+		if app.Session != nil {
+			app.Session.Close()
+			app.Session = nil
+		}
 		app.Config.Save()
 		app.Manager.RemoveWindow(w)
 		if app.Manager.WindowCount() == 0 {
