@@ -8,6 +8,7 @@ import (
 
 type Config struct {
 	Token string `json:"token"`
+	ApplicationID string `json:"application_id"`
 }
 
 func NewConfig() *Config {
