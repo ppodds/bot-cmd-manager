@@ -35,5 +35,7 @@ func NewMessageWindow(app *app.App, message string) *winman.WindowBase {
 
 	w.SetRect(4, 2, 30, 6)
 
+	app.SetFocus(w)
+
 	return w
 }
