@@ -11,40 +11,54 @@ import (
 
 type EditWindow struct {
 	winman.WindowBase
-	guildID string
+	guildID  string
 	commands []*discordgo.ApplicationCommand
-	viewing *discordgo.ApplicationCommand
-	detail *tview.Flex
+	viewing  *discordgo.ApplicationCommand
+	detail   *tview.Flex
 }
 
 // create a new EditWindow
 // if guildID is empty string, load global command instead
+// return nil if get some error
 func NewEditWindow(app *app.App, guildID string) *EditWindow {
 	if app.Session == nil {
 		s, err := discordgo.New("Bot " + app.Config.Token)
-		if (err != nil) {
+		if err != nil {
 			panic(err)
 		}
 		app.Session = s
 	}
-	
+
+	t := app.Manager.NewWindow()
 	w := (&EditWindow{
-		WindowBase: *app.Manager.NewWindow(),
-		guildID: guildID,
+		WindowBase: *t,
+		guildID:    guildID,
 	})
+	app.RemoveWindow(t)
+	app.AddWindow(w)
 	w.WindowBase.
 		Show().
 		SetTitle("Edit").
-		Maximize()
+		SetResizable(true).
+		SetDraggable(true)
 	c := tview.NewFlex().SetDirection(tview.FlexRow)
 	w.SetRoot(c).AddButton(&winman.Button{
-		Symbol:  'X',
-		OnClick: func() { app.Stop() },
+		Symbol: 'X',
+		OnClick: func() {
+			app.Manager.RemoveWindow(w)
+			if app.Manager.WindowCount() == 0 {
+				app.Stop()
+			}
+		},
 	})
 
 	commands, err := app.Session.ApplicationCommands(app.Config.ApplicationID, w.guildID)
-	if (err != nil) {
-		panic(err)
+	if err != nil {
+		if err == discordgo.ErrUnauthorized {
+			NewMessageWindow(app, "Can't get commands! Please check your bot token, application ID.")
+		} else {
+			NewMessageWindow(app, "Can't get commands! Please check your guild ID.")
+		}
 	}
 
 	w.commands = commands
@@ -60,24 +74,34 @@ func NewEditWindow(app *app.App, guildID string) *EditWindow {
 			w.ChangeViewingCommand()
 		})
 	}
-	
+
 	w.detail = tview.NewFlex().SetDirection(tview.FlexRow)
+	if w.guildID == "" {
+		c.AddItem(tview.NewButton("Config").SetSelectedFunc(func() {
+			app.SetFocus(NewConfigWindow(app))
+		}), 1, 1, false)
+		c.AddItem(tview.NewButton("View Guild Commands").SetSelectedFunc(func() {
+			app.SetFocus(NewGuildWindow(app))
+		}), 1, 1, false)
+	}
 
 	c.AddItem(d, 1, 1, false)
 	c.AddItem(w.detail, 0, 1, false)
 	c.AddItem(tview.NewButton("Delete"), 1, 1, false)
+
+	w.SetRect(0, 0, 50, len(w.commands)+5)
 	return w
 }
 
 func (w *EditWindow) ChangeViewingCommand() {
 	w.detail.Clear()
-	w.detail.AddItem(tview.NewTextView().SetText("ID: " + w.viewing.ID), 1, 1, false)
-	w.detail.AddItem(tview.NewTextView().SetText("Application ID: " + w.viewing.ApplicationID), 1, 1, false)
-	w.detail.AddItem(tview.NewTextView().SetText("Version: " + w.viewing.Version), 1, 1, false)
+	w.detail.AddItem(tview.NewTextView().SetText("ID: "+w.viewing.ID), 1, 1, false)
+	w.detail.AddItem(tview.NewTextView().SetText("Application ID: "+w.viewing.ApplicationID), 1, 1, false)
+	w.detail.AddItem(tview.NewTextView().SetText("Version: "+w.viewing.Version), 1, 1, false)
 	w.detail.AddItem(tview.NewTextView().SetText(fmt.Sprintf("Default Permission: %t", *w.viewing.DefaultPermission)), 1, 1, false)
-	w.detail.AddItem(tview.NewTextView().SetText("Type: " + fmtCmdType(w.viewing.Type)), 1, 1, false)
-	w.detail.AddItem(tview.NewTextView().SetText("Name: " + w.viewing.Name), 1, 1, false)
-	w.detail.AddItem(tview.NewTextView().SetText("Description: " + w.viewing.Description), 0, 1, false)
+	w.detail.AddItem(tview.NewTextView().SetText("Type: "+fmtCmdType(w.viewing.Type)), 1, 1, false)
+	w.detail.AddItem(tview.NewTextView().SetText("Name: "+w.viewing.Name), 1, 1, false)
+	w.detail.AddItem(tview.NewTextView().SetText("Description: "+w.viewing.Description), 0, 1, false)
 }
 
 func fmtCmdType(cmdType discordgo.ApplicationCommandType) string {

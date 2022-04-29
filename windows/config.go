@@ -12,9 +12,9 @@ func NewConfigWindow(app *app.App) *winman.WindowBase {
 		SetDraggable(true).
 		SetResizable(true).
 		SetTitle("Config")
-	form := tview.NewForm().AddPasswordField("Token", "", 0, '*', func(text string) {
+	form := tview.NewForm().AddPasswordField("Token", app.Config.Token, 0, '*', func(text string) {
 		app.Config.Token = text
-	}).AddInputField("Application ID", "", 0, nil, func(text string) {
+	}).AddInputField("Application ID", app.Config.ApplicationID, 0, nil, func(text string) {
 		app.Config.ApplicationID = text
 	}).AddButton("Save", func() {
 		app.Config.Save()
@@ -22,14 +22,14 @@ func NewConfigWindow(app *app.App) *winman.WindowBase {
 		app.Manager.AddWindow(NewEditWindow(app, ""))
 	})
 	w.SetRoot(form).AddButton(&winman.Button{
-		Symbol:  'X',
-		OnClick: func() { 
-			if (app.Manager.WindowCount() == 1) {
+		Symbol: 'X',
+		OnClick: func() {
+			app.Manager.RemoveWindow(w)
+			if app.Manager.WindowCount() == 0 {
 				app.Stop()
 			}
-			app.Manager.RemoveWindow(w)
 		},
 	})
-	w.SetRect(0, 0, 30, 10)
+	w.SetRect(0, 0, 100, 10)
 	return w
 }
