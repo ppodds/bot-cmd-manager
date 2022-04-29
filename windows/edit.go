@@ -87,7 +87,28 @@ func NewEditWindow(app *app.App, guildID string) *EditWindow {
 
 	c.AddItem(d, 1, 1, false)
 	c.AddItem(w.detail, 0, 1, false)
-	c.AddItem(tview.NewButton("Delete"), 1, 1, false)
+	c.AddItem(tview.NewButton("Delete").SetSelectedFunc(func() {
+		if w.viewing == nil {
+			NewMessageWindow(app, "Please select a command first.")
+			return
+		}
+		err := app.Session.ApplicationCommandDelete(app.Config.ApplicationID, w.guildID, w.viewing.ID)
+		if err != nil {
+			NewMessageWindow(app, "Can't delete command! Please check your bot token, application ID.")
+			return
+		}
+		NewMessageWindow(app, "Command deleted.")
+		i, _ := d.GetCurrentOption()
+		w.commands = append(w.commands[:i], w.commands[i+1:]...)
+		d.RemoveOption(i)
+		i, _ = d.GetCurrentOption()
+		if i == -1 {
+			w.viewing = nil
+		} else {
+			w.viewing = w.commands[i]
+		}
+		w.ChangeViewingCommand()
+	}), 1, 1, false)
 
 	w.SetRect(0, 0, 50, len(w.commands)+5)
 	return w
@@ -95,13 +116,17 @@ func NewEditWindow(app *app.App, guildID string) *EditWindow {
 
 func (w *EditWindow) ChangeViewingCommand() {
 	w.detail.Clear()
-	w.detail.AddItem(tview.NewTextView().SetText("ID: "+w.viewing.ID), 1, 1, false)
-	w.detail.AddItem(tview.NewTextView().SetText("Application ID: "+w.viewing.ApplicationID), 1, 1, false)
-	w.detail.AddItem(tview.NewTextView().SetText("Version: "+w.viewing.Version), 1, 1, false)
-	w.detail.AddItem(tview.NewTextView().SetText(fmt.Sprintf("Default Permission: %t", *w.viewing.DefaultPermission)), 1, 1, false)
-	w.detail.AddItem(tview.NewTextView().SetText("Type: "+fmtCmdType(w.viewing.Type)), 1, 1, false)
-	w.detail.AddItem(tview.NewTextView().SetText("Name: "+w.viewing.Name), 1, 1, false)
-	w.detail.AddItem(tview.NewTextView().SetText("Description: "+w.viewing.Description), 0, 1, false)
+	if w.viewing == nil {
+		w.detail.AddItem(tview.NewTextView().SetText("No command selected."), 0, 1, false)
+	} else {
+		w.detail.AddItem(tview.NewTextView().SetText("ID: "+w.viewing.ID), 1, 1, false)
+		w.detail.AddItem(tview.NewTextView().SetText("Application ID: "+w.viewing.ApplicationID), 1, 1, false)
+		w.detail.AddItem(tview.NewTextView().SetText("Version: "+w.viewing.Version), 1, 1, false)
+		w.detail.AddItem(tview.NewTextView().SetText(fmt.Sprintf("Default Permission: %t", *w.viewing.DefaultPermission)), 1, 1, false)
+		w.detail.AddItem(tview.NewTextView().SetText("Type: "+fmtCmdType(w.viewing.Type)), 1, 1, false)
+		w.detail.AddItem(tview.NewTextView().SetText("Name: "+w.viewing.Name), 1, 1, false)
+		w.detail.AddItem(tview.NewTextView().SetText("Description: "+w.viewing.Description), 0, 1, false)
+	}
 }
 
 func fmtCmdType(cmdType discordgo.ApplicationCommandType) string {
